@@ -1,0 +1,89 @@
+diff --git a/java/org/l2jmobius/gameserver/entity/actor/Player.java b/java/org/l2jmobius/gameserver/entity/actor/Player.java
+index 950fad369ff..63a2e845014 100644
+--- a/java/org/l2jmobius/gameserver/entity/actor/Player.java
++++ b/java/org/l2jmobius/gameserver/entity/actor/Player.java
+@@ -12209,6 +12209,12 @@ public class Player extends Playable
+ 			sendPacket(new ExStopItemAutoPeel(true));
+ 			sendPacket(new ExReadyItemAutoPeel(false, 0));
+ 			removeRequest(AutoPeelRequest.class);
++		}
++		
++		// Stop sayune.
++		if (hasRequest(SayuneRequest.class))
++		{
++			removeRequest(SayuneRequest.class);
+ 		}
+ 		
+ 		super.onTeleported();
+@@ -14111,7 +14117,7 @@ public class Player extends Playable
+ 			sendPacket(SystemMessageId.YOU_CANNOT_USE_MY_TELEPORTS_DURING_A_DUEL);
+ 			return false;
+ 		}
+-		else if (isFlying())
++		else if (isFlying() || hasRequest(SayuneRequest.class))
+ 		{
+ 			sendPacket(SystemMessageId.YOU_CANNOT_USE_MY_TELEPORTS_WHILE_FLYING);
+ 			return false;
+diff --git a/java/org/l2jmobius/gameserver/network/clientpackets/quest/RequestExQuestTeleport.java b/java/org/l2jmobius/gameserver/network/clientpackets/quest/RequestExQuestTeleport.java
+index 17e9217ed12..bb4af08602c 100644
+--- a/java/org/l2jmobius/gameserver/network/clientpackets/quest/RequestExQuestTeleport.java
++++ b/java/org/l2jmobius/gameserver/network/clientpackets/quest/RequestExQuestTeleport.java
+@@ -21,12 +21,14 @@
+ package org.l2jmobius.gameserver.network.clientpackets.quest;
+ 
+ import org.l2jmobius.gameserver.entity.actor.Player;
++import org.l2jmobius.gameserver.entity.actor.request.SayuneRequest;
+ import org.l2jmobius.gameserver.managers.ScriptManager;
+ import org.l2jmobius.gameserver.mechanics.script.Quest;
++import org.l2jmobius.gameserver.network.SystemMessageId;
+ import org.l2jmobius.gameserver.network.clientpackets.ClientPacket;
+ 
+ /**
+- * @author Mobius
++ * @author Mobius, Notorion
+  */
+ public class RequestExQuestTeleport extends ClientPacket
+ {
+@@ -46,6 +48,12 @@ public class RequestExQuestTeleport extends ClientPacket
+ 		{
+ 			return;
+ 		}
++		
++		if (player.hasRequest(SayuneRequest.class))
++		{
++			player.sendPacket(SystemMessageId.YOU_CANNOT_TELEPORT_RIGHT_NOW);
++			return;
++		}
+ 		
+ 		final Quest quest = ScriptManager.getInstance().getQuest(_questId);
+ 		if (quest == null)
+diff --git a/java/org/l2jmobius/gameserver/network/clientpackets/teleports/ExRequestTeleport.java b/java/org/l2jmobius/gameserver/network/clientpackets/teleports/ExRequestTeleport.java
+index 20bbb4e10d8..ef5e3eaf6b4 100644
+--- a/java/org/l2jmobius/gameserver/network/clientpackets/teleports/ExRequestTeleport.java
++++ b/java/org/l2jmobius/gameserver/network/clientpackets/teleports/ExRequestTeleport.java
+@@ -25,6 +25,7 @@ import org.l2jmobius.gameserver.data.holders.TeleportListHolder;
+ import org.l2jmobius.gameserver.data.xml.TeleportListData;
+ import org.l2jmobius.gameserver.entity.Location;
+ import org.l2jmobius.gameserver.entity.actor.Player;
++import org.l2jmobius.gameserver.entity.actor.request.SayuneRequest;
+ import org.l2jmobius.gameserver.entity.item.enums.ItemProcessType;
+ import org.l2jmobius.gameserver.entity.zone.ZoneId;
+ import org.l2jmobius.gameserver.managers.CastleManager;
+@@ -35,7 +36,7 @@ import org.l2jmobius.gameserver.network.clientpackets.ClientPacket;
+ import org.l2jmobius.gameserver.network.serverpackets.quest.ExTeleportUI;
+ 
+ /**
+- * @author NviX, Mobius
++ * @author NviX, Mobius, Notorion
+  */
+ public class ExRequestTeleport extends ClientPacket
+ {
+@@ -71,7 +72,7 @@ public class ExRequestTeleport extends ClientPacket
+ 		}
+ 		
+ 		// Players should not be able to teleport if in a special location.
+-		if ((player.getMovieHolder() != null) || player.isFishing() || player.isInInstance() || player.isOnEvent() || player.isInOlympiadMode() || player.inObserverMode() || player.isInTraingCamp() || player.isInTimedHuntingZone() || player.isInStoreMode())
++		if ((player.getMovieHolder() != null) || player.isFishing() || player.isInInstance() || player.isOnEvent() || player.isInOlympiadMode() || player.inObserverMode() || player.isInTraingCamp() || player.isInTimedHuntingZone() || player.isInStoreMode() || player.hasRequest(SayuneRequest.class))
+ 		{
+ 			player.sendPacket(SystemMessageId.YOU_CANNOT_TELEPORT_RIGHT_NOW);
+ 			return;
